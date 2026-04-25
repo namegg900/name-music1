@@ -12,6 +12,7 @@ import { usePlayer } from "../context/PlayerContext";
 import AddToPlaylistModal from "./AddToPlaylistModal";
 import Tooltip from "./Tooltip";
 import API_BASE_URL from "../config/api";
+import { API_BASE_URL as CATALOG_API_BASE_URL } from "../constants";
 
 const SharedPlaylist = () => {
   const { id } = useParams();
@@ -30,7 +31,7 @@ const SharedPlaylist = () => {
 
         if (data && data.likedSongs && data.likedSongs.length > 0) {
           const idsString = data.likedSongs.join(',');
-          const saavnRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/songs?ids=${idsString}`);
+          const saavnRes = await axios.get(`${CATALOG_API_BASE_URL}/songs?ids=${idsString}`);
           setPlaylistUser({ ...data, likedSongs: saavnRes.data.data });
         } else {
           setPlaylistUser({ ...data, likedSongs: [] });

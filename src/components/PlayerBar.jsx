@@ -13,6 +13,14 @@ import PartyDashboard from "./PartyDashboard";
 import { useSocket } from "../context/SocketContext";
 import LyricsOverlay from "./LyricsOverlay";
 
+const resolveAudioUrl = (song) => {
+  if (!song?.downloadUrl || !Array.isArray(song.downloadUrl)) return "";
+  const candidates = [...song.downloadUrl]
+    .map((item) => item?.url)
+    .filter(Boolean);
+  return candidates[candidates.length - 1] || "";
+};
+
 const PlayerBar = () => {
   const navigate = useNavigate();
   const {
@@ -265,7 +273,7 @@ const PlayerBar = () => {
                   }}
                   autoPlay
                   onEnded={next}
-                  src={e?.downloadUrl?.[4]?.url}
+                  src={resolveAudioUrl(e)}
                   className="absolute opacity-0 pointer-events-none w-0 h-0"
                 ></audio>
               </div>
@@ -311,7 +319,7 @@ const PlayerBar = () => {
                 <button
                   onClick={() =>
                     handleGenerateAudio({
-                      audioUrl: e?.downloadUrl?.[4]?.url,
+                      audioUrl: resolveAudioUrl(e),
                       imageUrl: e?.image?.[2]?.url,
                       songName: e?.name,
                       year: e?.year,
@@ -337,7 +345,7 @@ const PlayerBar = () => {
                 <button
                   onClick={() =>
                     handleGenerateAudio2({
-                      audioUrl: e?.downloadUrl?.[4]?.url,
+                      audioUrl: resolveAudioUrl(e),
                       imageUrl: e?.image?.[2]?.url,
                       songName: e?.name,
                       year: e?.year,
@@ -384,7 +392,7 @@ const PlayerBar = () => {
                 <button
                   onClick={() =>
                     handleGenerateAudio({
-                      audioUrl: e?.downloadUrl?.[4]?.url,
+                      audioUrl: resolveAudioUrl(e),
                       imageUrl: e?.image?.[2]?.url,
                       songName: e?.name,
                       year: e?.year,
@@ -400,7 +408,7 @@ const PlayerBar = () => {
                 <button
                   onClick={() =>
                     handleGenerateAudio2({
-                      audioUrl: e?.downloadUrl?.[4]?.url,
+                      audioUrl: resolveAudioUrl(e),
                       imageUrl: e?.image?.[2]?.url,
                       songName: e?.name,
                       year: e?.year,

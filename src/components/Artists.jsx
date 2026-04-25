@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Circ } from "gsap/all";
 import toast from "react-hot-toast";
 import Tooltip from "./Tooltip";
+import { API_BASE_URL as CATALOG_API_BASE_URL } from "../constants";
 
 const Artists = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const Artists = () => {
   const getArtists = async () => {
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/search/artists?query=${query}&limit=50`
+        `${CATALOG_API_BASE_URL}/search/artists?query=${query}&limit=50`
       );
       setArtists(data?.data?.results || []);
       localStorage.setItem("artists", JSON.stringify(data?.data?.results || []));

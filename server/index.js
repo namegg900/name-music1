@@ -38,6 +38,11 @@ const app = express();
  * Database Connection Middleware (For Serverless resiliency)
  */
 app.use(async (req, res, next) => {
+  // Catalog/radio/docs endpoints do not require MongoDB.
+  // Skipping DB handshake here avoids unnecessary 500/503 on public API proxy routes.
+  const requiresDb = /^\/api\/(auth|users|playlists|admin|ai)\b/.test(req.path);
+  if (!requiresDb) return next();
+
   try {
     await connectDB();
     next();

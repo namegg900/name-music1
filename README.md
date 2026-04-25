@@ -69,6 +69,28 @@
 ---
 
 ### Production
+
+## ⚡ Quick Deploy Tutorial (Vercel)
+
+If `/api/catalog/*` returns 500 in production, use this checklist:
+
+1. **Set frontend + backend URL envs**
+   - `FRONTEND_URL=https://<your-frontend-domain>`
+   - `VITE_BACKEND_URL=https://<your-frontend-domain>` (or backend domain if split)
+2. **Set catalog upstream env (recommended)**
+   - `VITE_API_BASE_URL=https://<your-working-saavn-wrapper-api>`
+   - Optional fallback: `VITE_JIOSAAVN_API_URL=https://www.jiosaavn.com/api.php`
+3. **Set DB env only for DB routes**
+   - `MONGODB_URI`, `JWT_SECRET`
+   - Catalog + radio endpoints are now designed to work even when DB is unavailable.
+4. **Redeploy after env changes** (Vercel does not always hot-apply all env changes to existing builds).
+
+### Smoke test after deploy
+- `GET /api/catalog/modules?language=english`
+- `GET /api/catalog/search/songs?query=english&page=1&limit=10`
+
+If both return JSON, home/search should load normally.
+
 The app is optimized for **Vercel** with a specialized `vercel.json` for serverless function handling and static asset optimization.
 
 ---

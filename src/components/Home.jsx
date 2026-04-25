@@ -127,7 +127,7 @@ const PremiumDropdown = ({ options, value, onChange }) => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [hasCatalogApi]);
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
@@ -212,11 +212,18 @@ const Home = () => {
 
   const [playlistModalSong, setPlaylistModalSong] = useState(null);
 
+  const hasCatalogApi = Boolean(import.meta.env.VITE_API_BASE_URL);
+  const hasRadioApi = Boolean(import.meta.env.VITE_BACKEND_URL);
+
   const HOME_API_LANGUAGES = new Set(["english", "hindi", "punjabi", "gujarati", "rajasthani"]);
   const normalizeHomeLanguage = (lang) => (HOME_API_LANGUAGES.has(lang) ? lang : "english");
   const normalizeRadioLanguage = (lang) => (HOME_API_LANGUAGES.has(lang) ? lang : "hindi");
 
   const getHome = async (lang = language) => {
+    if (!hasCatalogApi) {
+      setHome({ charts: [], playlists: [], albums: [] });
+      return;
+    }
     try {
       const apiLang = normalizeHomeLanguage(lang);
       const response = await getHomeModules(apiLang);
@@ -228,6 +235,10 @@ const Home = () => {
   };
 
   const getDetails = async (lang = language) => {
+    if (!hasCatalogApi) {
+      setDetails([]);
+      return;
+    }
     try {
       const queryLang = lang === "indonesian" ? "lagu indonesia populer" : lang === "malay" ? "lagu malaysia populer" : lang;
       const pageNo = queryLang === "english" ? page : page2;
@@ -258,6 +269,7 @@ const Home = () => {
   }
 
   function processLikedSongIds() {
+    if (!hasCatalogApi) return [];
     const likedSongs = JSON.parse(localStorage.getItem("likeData")) || [];
     const songIds = likedSongs.map((song) => song.id);
     const uniqueSongIds = Array.from(new Set(songIds));
@@ -308,6 +320,8 @@ const Home = () => {
   }, [language]);
 
   useEffect(() => {
+    if (!hasRadioApi) return;
+
     async function loadRadios() {
       try {
         const radios = await fetchFeaturedRadios(normalizeRadioLanguage(language));
@@ -325,7 +339,7 @@ const Home = () => {
       }
     }
     loadRadios();
-  }, [language]);
+  }, [language, hasRadioApi]);
 
   async function FinalfetchRadioSongs(language, radioId) {
     const loadingToast = toast.loading("Tuning into radio station...", {
@@ -348,6 +362,8 @@ const Home = () => {
   }
 
   useEffect(() => {
+    if (!hasCatalogApi) return;
+
     async function loadRegionalPicks() {
       try {
         const [indoRes, malayRes] = await Promise.all([
@@ -365,7 +381,7 @@ const Home = () => {
     }
 
     loadRegionalPicks();
-  }, []);
+  }, [hasCatalogApi]);
 
   async function FinalfetchArtitsRadioSongs(language, radioId) {
     const loadingToast = toast.loading("Tuning into artist station...", {
@@ -388,7 +404,11 @@ const Home = () => {
   }
 
 
-  return details.length > 0 ? (
+  const isInitialLoading = hasCatalogApi && home === null && details.length === 0;
+
+  return isInitialLoading ? (
+    <Loading />
+  ) : (
     <div className="w-full min-h-screen bg-gradient-to-b from-[#121212] to-black">
       {/* ========== UPGRADED NAVBAR ========== */}
       <motion.div
@@ -649,8 +669,6 @@ const Home = () => {
         />
       )}
     </div>
-  ) : (
-    <Loading />
   );
 };
 

@@ -117,7 +117,7 @@ const SharedPlaylist = () => {
           ) : (
             <Tooltip text="Login to interact" position="bottom">
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/")}
                 className="px-4 py-2 bg-slate-800 text-white rounded-full font-bold border border-white/5 hover:bg-slate-700 transition-all text-sm"
               >
                 <i className="ri-login-circle-line"></i> LOGIN

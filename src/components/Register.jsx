@@ -429,7 +429,7 @@ const Register = () => {
 
             <div className="mt-4 pt-3 border-t border-white/5 flex flex-col items-center lg:items-start">
               <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1 opacity-50">Already part of us?</p>
-              <Link to="/login" className="group inline-flex items-center gap-3 text-white hover:text-blue-400 font-black tracking-[0.1em] transition-all uppercase text-[11px]">
+              <Link to="/" className="group inline-flex items-center gap-3 text-white hover:text-blue-400 font-black tracking-[0.1em] transition-all uppercase text-[11px]">
                 <span className="relative">Login Instead <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-white/10 group-hover:bg-blue-500/50" /></span>
                 <i className="ri-login-box-fill text-lg bg-white/5 w-7 h-7 rounded-full flex items-center justify-center group-hover:bg-blue-500 transition-all shadow-lg"></i>
               </Link>

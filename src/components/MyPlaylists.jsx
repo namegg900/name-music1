@@ -33,7 +33,7 @@ const MyPlaylists = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/login");
+      navigate("/");
       toast.error("Please login to access your playlists");
     } else if (user) {
       fetchPlaylists();

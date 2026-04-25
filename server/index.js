@@ -24,6 +24,7 @@ import playlistRoutes from './routes/playlistRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import radioRoutes from './routes/radioRoutes.js';
+import catalogRoutes from './routes/catalogRoutes.js';
 
 // Global Environment Check for Production
 if (process.env.NODE_ENV === 'production') {
@@ -37,6 +38,11 @@ const app = express();
  * Database Connection Middleware (For Serverless resiliency)
  */
 app.use(async (req, res, next) => {
+  // Catalog/radio/docs endpoints do not require MongoDB.
+  // Skipping DB handshake here avoids unnecessary 500/503 on public API proxy routes.
+  const requiresDb = /^\/api\/(auth|users|playlists|admin|ai)\b/.test(req.path);
+  if (!requiresDb) return next();
+
   try {
     await connectDB();
     next();
@@ -76,6 +82,7 @@ app.use('/api/playlists', playlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/radio', radioRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 // Documentation Dashboard (Markdown to HTML)
 app.get('/', renderApiDocs);

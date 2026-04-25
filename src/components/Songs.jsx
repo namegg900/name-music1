@@ -238,7 +238,7 @@ const Songs = () => {
              </motion.div>
              <h2 className="text-3xl sm:text-xl font-black text-white mb-3">Symphony of a Billion Songs</h2>
              <p className="text-zinc-500 max-w-md">
-               Enter a song, artist, or album name to begin your musical journey with THE ULTIMATE SONGS.
+               Enter a song, artist, or album name to begin your musical journey with name-music.
              </p>
              <div className="mt-12 flex flex-wrap justify-center gap-3">
                {["Trending", "New Releases", "Top Charts", "Podcasts"].map(tag => (

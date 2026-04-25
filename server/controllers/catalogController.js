@@ -4,7 +4,8 @@ const getCatalogBaseUrl = () => process.env.VITE_JIOSAAVN_API_URL || 'https://ww
 
 const buildCatalogUrl = (req) => {
   const base = getCatalogBaseUrl().replace(/\/+$/, '');
-  const pathSuffix = (req.params[0] || '').replace(/^\/+/, '');
+  const rawSplat = req.params?.splat ?? req.params?.[0] ?? '';
+  const pathSuffix = (Array.isArray(rawSplat) ? rawSplat.join('/') : rawSplat).replace(/^\/+/, '');
   const target = pathSuffix ? `${base}/${pathSuffix}` : base;
 
   const url = new URL(target);

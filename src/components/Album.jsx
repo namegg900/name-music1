@@ -6,6 +6,7 @@ import { Circ } from "gsap/all";
 import toast from "react-hot-toast";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Tooltip from "./Tooltip";
+import { API_BASE_URL as CATALOG_API_BASE_URL } from "../constants";
 
 const Album = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const Album = () => {
     if (!requery) return;
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/search/albums?query=${requery}&page=${page}&limit=20`
+        `${CATALOG_API_BASE_URL}/search/albums?query=${requery}&page=${page}&limit=20`
       );
       
       const newItems = data?.data?.results || [];

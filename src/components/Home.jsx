@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Circ } from "gsap/all";
 import useLikedSongs from "../hooks/useLikedSongs";
 import { usePlayer } from "../context/PlayerContext";
-import { LANGUAGE_OPTIONS } from "../constants";
+import { API_BASE_URL as CATALOG_API_BASE_URL, LANGUAGE_OPTIONS } from "../constants";
 import { getHomeModules, searchSongs, getSongSuggestions, fetchFeaturedRadios, fetchArtistsRadios, fetchUniqueArtists, fetchStarringArtists, getTrendingLabels, fetchRadioSongs, fetchArtitsRadioSongs } from "../services/api";
 import AddToPlaylistModal from "./AddToPlaylistModal";
 import Tooltip from "./Tooltip";
@@ -212,7 +212,7 @@ const Home = () => {
 
   const [playlistModalSong, setPlaylistModalSong] = useState(null);
 
-  const hasCatalogApi = Boolean(import.meta.env.VITE_API_BASE_URL);
+  const hasCatalogApi = Boolean(CATALOG_API_BASE_URL);
   const hasRadioApi = Boolean(import.meta.env.VITE_BACKEND_URL);
 
   const HOME_API_LANGUAGES = new Set(["english", "hindi", "punjabi", "gujarati", "rajasthani"]);

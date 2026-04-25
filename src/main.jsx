@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { BrowserRouter } from 'react-router-dom'
-import { registerSW } from 'virtual:pwa-register'
 import axios from 'axios'
 import { decodeData } from './utils/decodeUtils'
 
@@ -19,9 +18,6 @@ axios.interceptors.response.use(
   },
   (error) => Promise.reject(error)
 );
-
-// Check for updates every hour
-registerSW({ immediate: true })
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>

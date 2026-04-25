@@ -156,13 +156,13 @@ const MyPlaylistDetails = () => {
     const username = playlist?.owner?.username || "user";
     const playlistName = playlist?.name || "My Playlist";
     const shareUrl = `${window.location.origin}/${username}/${id}`;
-    const shareText = `Check out "${playlistName}" by ${username} on THE ULTIMATE SONGS!\n\n${shareUrl}`;
+    const shareText = `Check out "${playlistName}" by ${username} on name-music!\n\n${shareUrl}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: playlistName,
-          text: `Check out "${playlistName}" by ${username} on THE ULTIMATE SONGS`,
+          text: `Check out "${playlistName}" by ${username} on name-music`,
           url: shareUrl,
         });
       } catch (err) {
@@ -356,7 +356,7 @@ const MyPlaylistDetails = () => {
           <div className="flex flex-col gap-3">
             {!user && error.status === 403 && (
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/")}
                 className="w-full py-4 bg-green-500 text-slate-900 font-black rounded-2xl hover:bg-green-400 transition-all active:scale-95 shadow-lg shadow-green-500/20 uppercase tracking-widest text-xs"
               >
                 Sign In to Access
@@ -465,8 +465,8 @@ const MyPlaylistDetails = () => {
               <button
                 onClick={() => {
                   if (!user) {
-                    toast.error("Please login to import playlists");
-                    navigate("/login");
+                    toast.error("Mode gratis aktif. Import online tidak diperlukan");
+                    navigate("/");
                     return;
                   }
                   handleImport();

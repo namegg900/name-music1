@@ -133,7 +133,7 @@ const SongDetails = () => {
           </Tooltip>
           <div className="flex flex-col">
             <h1 className="text-xl sm:text-base text-white font-black tracking-tighter leading-none uppercase italic">
-              The Ultimate
+              name-music
             </h1>
             <span className="text-[10px] text-green-400 font-bold tracking-[0.4em] ml-0.5 opacity-80 uppercase">Experience</span>
           </div>
@@ -463,7 +463,7 @@ const SongDetails = () => {
           {/* Minimal Footer */}
           <section className="py-12 border-t border-white/5 text-center mb-24">
             <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-[0.3em] opacity-40 hover:opacity-100 transition-opacity">
-               {currentSong.copyright || `© ${newSongYear} The Ultimate Global Music Archive`}
+               {currentSong.copyright || `© ${new Date().getFullYear()} name-music`}
             </p>
           </section>
 

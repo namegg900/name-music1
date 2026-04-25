@@ -65,7 +65,7 @@ const Loading = ({ page, customText }) => {
               transition={{ duration: 1 }}
               className="text-white font-black tracking-[0.4em] uppercase text-xs"
             >
-              {customText || "The Ultimate Songs"}
+              {customText || "name-music"}
             </motion.h2>
             <motion.div 
               animate={{ opacity: [0.1, 0.3, 0.1] }}

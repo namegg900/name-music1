@@ -25,7 +25,7 @@ const ResetPassword = () => {
 
     try {
       await axios.put(`${API_BASE_URL}/api/auth/resetpassword/${token}`, { password });
-      navigate("/login", { state: { message: "Password updated successfully! Please login with your new password." } });
+      navigate("/", { state: { message: "Password updated successfully. Mode gratis aktif tanpa login." } });
     } catch (err) {
       setError(err.response?.data?.message || "Invalid or expired token. Please request a new link.");
     } finally {

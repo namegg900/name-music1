@@ -145,9 +145,9 @@ const Login = () => {
               <img src={logo} alt="Logo" className="w-28 h-28 rounded-3xl shadow-2xl border border-white/10 relative z-10 transform -rotate-6 group-hover:rotate-0 transition-transform duration-700" />
             </div>
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-tight mb-3">
-              The Ultimate <br /> <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Songs</span>
+              name-music
             </h1>
-            <p className="text-zinc-400 text-[10px] font-bold tracking-[0.2em] uppercase opacity-70">Your premium music universe</p>
+            <p className="text-zinc-400 text-[10px] font-bold tracking-[0.2em] uppercase opacity-70">Your free music universe</p>
           </motion.div>
         </div>
       </div>
@@ -339,7 +339,7 @@ const Login = () => {
 
             <div className="mt-3 pt-2 border-t border-white/5 flex flex-col items-center lg:items-start">
               <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1 opacity-50">New to the family?</p>
-              <Link to="/register" className="group inline-flex items-center gap-2 text-white hover:text-purple-400 font-black tracking-[0.1em] transition-all uppercase text-[10px]">
+              <Link to="/" className="group inline-flex items-center gap-2 text-white hover:text-purple-400 font-black tracking-[0.1em] transition-all uppercase text-[10px]">
                 <span className="relative">Create Account <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-white/10 group-hover:bg-purple-500/50" /></span>
                 <i className="ri-add-line text-sm bg-white/5 w-6 h-6 rounded-full flex items-center justify-center group-hover:bg-purple-500 transition-all shadow-lg"></i>
               </Link>

@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
-import axios from "axios";
-import API_BASE_URL from "../config/api";
 import { buildSmartQueueForSong } from "../services/api";
 
 const PlayerContext = createContext();
@@ -537,25 +535,24 @@ export const PlayerProvider = ({ children }) => {
   // Update document title
   useEffect(() => {
     const title = songlink[0]?.name;
-    document.title = title ? title : "THE ULTIMATE SONGS";
+    document.title = title ? title : "name-music";
   }, [songlink]);
 
-  // Update Listening History
+  // Update Listening History in localStorage (no login required)
   useEffect(() => {
     if (songlink.length > 0 && isPlaying) {
-      const updateHistory = async () => {
+      const updateHistory = () => {
         try {
-          await axios.post(`${API_BASE_URL}/api/users/history`, 
-            { songId: songlink[0].id },
-            { withCredentials: true }
-          );
+          const currentSong = songlink[0];
+          const raw = localStorage.getItem("nameMusicHistory");
+          const history = raw ? JSON.parse(raw) : [];
+          const deduped = [currentSong, ...history.filter((song) => song?.id !== currentSong?.id)].slice(0, 50);
+          localStorage.setItem("nameMusicHistory", JSON.stringify(deduped));
         } catch (error) {
-          // Silent fail if not logged in or other error
-          console.log("History update skipped (not logged in?)");
+          console.log("History localStorage update failed", error);
         }
       };
-      
-      // Debounce history update: wait 5 seconds of playback before adding to history
+
       const timer = setTimeout(updateHistory, 5000);
       return () => clearTimeout(timer);
     }

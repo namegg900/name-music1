@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "./../../public/logo3.jpg";
@@ -10,7 +10,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Circ } from "gsap/all";
 import useLikedSongs from "../hooks/useLikedSongs";
 import { usePlayer } from "../context/PlayerContext";
-import { AuthContext } from "../context/AuthContext";
 import { LANGUAGE_OPTIONS } from "../constants";
 import { getHomeModules, searchSongs, getSongSuggestions, fetchFeaturedRadios, fetchArtistsRadios, fetchUniqueArtists, fetchStarringArtists, getTrendingLabels, fetchRadioSongs, fetchArtitsRadioSongs } from "../services/api";
 import AddToPlaylistModal from "./AddToPlaylistModal";
@@ -194,7 +193,7 @@ const PremiumDropdown = ({ options, value, onChange }) => {
 const Home = () => {
   const navigate = useNavigate();
   const [home, setHome] = useState(null);
-  const [language, setLanguage] = useState("hindi");
+  const [language, setLanguage] = useState("english");
   const [details, setDetails] = useState([]);
   const [suggSong, setSuggSong] = useState([]);
   let [page, setPage] = useState(1);
@@ -205,37 +204,54 @@ const Home = () => {
   const [trendingArtistRadioStations, setTrendingArtistRadioStations] = useState([]);
   const [starringArtistRadioStations, setStarringArtistRadioStations] = useState([]);
   const [trendingLabels, setLabels] = useState([]);
+  const [regionalPicks, setRegionalPicks] = useState([]);
 
   const { playSong, songlink, isPlaying, currentIndex, addToQueue, setHasRadioQueue, setStationId, setCurrentRadioPage } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
-  const { historySongs, loading: historyLoading } = useHistory();
-  const { user, logout, loading: authLoading } = useContext(AuthContext);
+  const { historySongs } = useHistory();
 
   const [playlistModalSong, setPlaylistModalSong] = useState(null);
 
-  const getHome = async () => {
-    resetState();
+  const hasCatalogApi = Boolean(import.meta.env.VITE_API_BASE_URL);
+  const hasRadioApi = Boolean(import.meta.env.VITE_BACKEND_URL);
+
+  const HOME_API_LANGUAGES = new Set(["english", "hindi", "punjabi", "gujarati", "rajasthani"]);
+  const normalizeHomeLanguage = (lang) => (HOME_API_LANGUAGES.has(lang) ? lang : "english");
+  const normalizeRadioLanguage = (lang) => (HOME_API_LANGUAGES.has(lang) ? lang : "hindi");
+
+  const getHome = async (lang = language) => {
+    if (!hasCatalogApi) {
+      setHome({ charts: [], playlists: [], albums: [] });
+      return;
+    }
     try {
-      const { data } = await getHomeModules(language);
-      setHome(data.data);
+      const apiLang = normalizeHomeLanguage(lang);
+      const response = await getHomeModules(apiLang);
+      setHome(response?.data?.data || {});
     } catch (error) {
-      console.log("error", error);
+      console.log("error loading home modules", error);
+      setHome({});
     }
   };
 
-  const getDetails = async () => {
+  const getDetails = async (lang = language) => {
+    if (!hasCatalogApi) {
+      setDetails([]);
+      return;
+    }
     try {
-      const { data } = await searchSongs(
-        language,
-        language === "english" ? page : page2,
-        20
-      );
-      const newData = data.data.results.filter(
+      const queryLang = lang === "indonesian" ? "lagu indonesia populer" : lang === "malay" ? "lagu malaysia populer" : lang;
+      const pageNo = queryLang === "english" ? page : page2;
+      const response = await searchSongs(queryLang, pageNo, 40);
+      const results = response?.data?.data?.results || [];
+      const newData = results.filter(
         (newItem) => !details.some((prevItem) => prevItem.id === newItem.id)
       );
       setDetails((prev) => [...prev, ...newData]);
+      setPage(18);
     } catch (error) {
-      console.log("error", error);
+      console.log("error loading songs", error);
+      setDetails([]);
     }
   };
 
@@ -253,6 +269,7 @@ const Home = () => {
   }
 
   function processLikedSongIds() {
+    if (!hasCatalogApi) return [];
     const likedSongs = JSON.parse(localStorage.getItem("likeData")) || [];
     const songIds = likedSongs.map((song) => song.id);
     const uniqueSongIds = Array.from(new Set(songIds));
@@ -290,73 +307,46 @@ const Home = () => {
     setSuggSong([]);
   }
 
-  function seccall() {
-    const intervalId = setInterval(() => {
-      if (home === null) {
-        getHome();
-      }
-    }, 1000);
-    return intervalId;
-  }
-
-  function seccall2() {
-    const intervalId2 = setInterval(
-      () => {
-        if (details.length >= 0 && page < 5) {
-          setPage2(Math.floor(Math.random() * 50));
-          setPage(page + 1);
-          getDetails();
-        }
-      },
-      page <= 2 ? 500 : 2000
-    );
-    return intervalId2;
-  }
-
   useEffect(() => {
-    const interval = seccall();
-    return () => clearInterval(interval);
-  }, [language, home]);
-
-  useEffect(() => {
-    getHome();
+    resetState();
+    setPage2(Math.floor(Math.random() * 50));
+    getHome(language);
+    getDetails(language);
   }, [language]);
 
-  useEffect(() => {
-    const interval2 = seccall2();
-    return () => clearInterval(interval2);
-  }, [details, page, language]);
 
   useEffect(() => {
     processLikedSongIds();
   }, [language]);
 
   useEffect(() => {
+    if (!hasRadioApi) return;
+
     async function loadRadios() {
       try {
-        const radios = await fetchFeaturedRadios(language);
+        const radios = await fetchFeaturedRadios(normalizeRadioLanguage(language));
         setRadioStations(radios);
         const artistRadios = await fetchArtistsRadios();
         setArtistRadioStations(artistRadios);
-        const uniqueArtists = await fetchUniqueArtists(language);
+        const uniqueArtists = await fetchUniqueArtists(normalizeRadioLanguage(language));
         setTrendingArtistRadioStations(uniqueArtists);
-        const starringArtists = await fetchStarringArtists(language);
+        const starringArtists = await fetchStarringArtists(normalizeRadioLanguage(language));
         setStarringArtistRadioStations(starringArtists);
-        const labelsData = await getTrendingLabels(language);
+        const labelsData = await getTrendingLabels(normalizeRadioLanguage(language));
         setLabels(labelsData);
       } catch (err) {
         console.error("Error loading radios", err);
       }
     }
     loadRadios();
-  }, [language]);
+  }, [language, hasRadioApi]);
 
   async function FinalfetchRadioSongs(language, radioId) {
     const loadingToast = toast.loading("Tuning into radio station...", {
         style: { borderRadius: '10px', background: '#333', color: '#fff' }
     });
     try {
-      const { fullSongs, stationId } = await fetchRadioSongs(language, radioId);
+      const { fullSongs, stationId } = await fetchRadioSongs(normalizeRadioLanguage(language), radioId);
       if (fullSongs?.data?.length > 0) {
         setStationId(stationId);
         setHasRadioQueue(true);
@@ -370,6 +360,28 @@ const Home = () => {
       toast.error("Failed to connect to station", { id: loadingToast });
     }
   }
+
+  useEffect(() => {
+    if (!hasCatalogApi) return;
+
+    async function loadRegionalPicks() {
+      try {
+        const [indoRes, malayRes] = await Promise.all([
+          searchSongs("lagu indonesia populer", 1, 10),
+          searchSongs("lagu malaysia populer", 1, 10),
+        ]);
+        const picks = [
+          ...(indoRes?.data?.data?.results || []).slice(0, 3),
+          ...(malayRes?.data?.data?.results || []).slice(0, 3),
+        ];
+        setRegionalPicks(picks.filter(Boolean));
+      } catch (error) {
+        console.error("Failed loading regional picks", error);
+      }
+    }
+
+    loadRegionalPicks();
+  }, [hasCatalogApi]);
 
   async function FinalfetchArtitsRadioSongs(language, radioId) {
     const loadingToast = toast.loading("Tuning into artist station...", {
@@ -392,19 +404,23 @@ const Home = () => {
   }
 
 
-  return details.length > 0 ? (
-    <div className="w-full min-h-screen bg-slate-800">
+  const isInitialLoading = hasCatalogApi && home === null && details.length === 0;
+
+  return isInitialLoading ? (
+    <Loading />
+  ) : (
+    <div className="w-full min-h-screen bg-gradient-to-b from-[#121212] to-black">
       {/* ========== UPGRADED NAVBAR ========== */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ease: Circ.easeIn, duration: 0.5 }}
-        className="fixed z-[99] top-0 w-full min-h-[10vh] sm:min-h-0 bg-slate-800/90 backdrop-blur-xl border-b border-white/5 py-4 px-8 sm:px-4 sm:py-3 flex sm:flex-col sm:gap-4 items-center gap-6 shadow-lg"
+        className="fixed z-[99] top-0 w-full min-h-[10vh] sm:min-h-0 bg-black/80 backdrop-blur-xl border-b border-white/5 py-4 px-8 sm:px-4 sm:py-3 flex sm:flex-col sm:gap-4 items-center gap-6 shadow-lg"
       >
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <img className="w-10 h-10 sm:w-8 sm:h-8 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.3)]" src={logo} alt="Logo" />
           <h1 className="text-xl sm:text-lg text-white font-black tracking-tight whitespace-nowrap" style={{textShadow: "0 0 10px rgba(34,197,94,0.3)"}}>
-            ULTIMATE SONGS
+            name-music
           </h1>
         </div>
 
@@ -422,9 +438,7 @@ const Home = () => {
             { name: "Artists", path: "/artists", icon: "ri-mic-2-fill", priority: "low" },
             { name: "Albums", path: "/album", icon: "ri-album-fill", priority: "low" },
             { name: "Likes", path: "/likes", icon: "ri-heart-3-fill", priority: "high" },
-            ...(!authLoading && user ? [
-              { name: "My Playlists", path: "/my-playlists", icon: "ri-folder-music-fill", priority: "high" }
-            ] : [])
+            { name: "My Playlists", path: "/my-playlists", icon: "ri-folder-music-fill", priority: "high" }
           ].map((link, index) => (
             <motion.div
               key={link.name}
@@ -455,42 +469,9 @@ const Home = () => {
           
           <div className="w-[1px] h-6 bg-slate-600/50 mx-2 hidden md:block lg:block"></div>
           
-          {authLoading ? (
-            <div className="flex items-center gap-3 ml-auto sm:ml-0 sm:w-full sm:justify-center min-w-[120px]">
-               <i className="ri-loader-4-line animate-spin text-green-500 text-xl"></i>
-            </div>
-          ) : user ? (
-            <div className="flex items-center gap-2 ml-auto sm:ml-0 sm:w-full sm:justify-center">
-              <Link 
-                to={`/profile/${user.username}`}
-                className="flex items-center gap-2 bg-green-500/5 hover:bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20 transition-all group/navprof"
-              >
-                <div className="w-5 h-5 rounded-md bg-green-500/20 flex items-center justify-center text-[10px] font-black text-green-400 uppercase group-hover/navprof:bg-green-500 group-hover/navprof:text-slate-950 transition-colors">
-                  {user.username[0]}
-                </div>
-                <span className="text-green-400 font-bold text-[11px] whitespace-nowrap flex items-center gap-1.5">
-                  Hi, {user.username}
-                  <i className="ri-external-link-line text-[10px] opacity-50 group-hover/navprof:opacity-100 transition-opacity"></i>
-                </span>
-              </Link>
-              {user.role === 'admin' && (
-                <Link to="/admin" className="text-[10px] bg-purple-600/20 text-purple-400 border border-purple-500/30 px-2.5 py-1.5 rounded-full hover:bg-purple-600/40 font-bold transition-all whitespace-nowrap">
-                  Admin
-                </Link>
-              )}
-              <button 
-                onClick={logout}
-                className="text-[10px] bg-slate-700 text-white hover:bg-red-500/90 px-2.5 py-1.5 rounded-full font-bold transition-all border border-slate-600 hover:border-red-400"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 ml-auto sm:ml-0 sm:w-full sm:justify-center">
-              <Link to="/login" className="text-sm text-zinc-300 hover:text-white font-bold px-3 py-1.5 transition-all">Log in</Link>
-              <Link to="/register" className="text-sm bg-white text-black font-black px-5 py-1.5 rounded-full hover:scale-105 transition-all shadow-md">Sign up</Link>
-            </div>
-          )}
+          <div className="flex items-center gap-2 ml-auto sm:ml-0 sm:w-full sm:justify-center">
+            <span className="text-xs bg-green-500 text-black font-black px-4 py-1.5 rounded-full shadow-md uppercase tracking-wider">Free · No Login</span>
+          </div>
 
         </motion.div>
       </motion.div>
@@ -510,7 +491,7 @@ const Home = () => {
         </div>
 
         {/* Recently Played */}
-        {!authLoading && user && historySongs.length > 0 && (
+        {historySongs.length > 0 && (
           <div className="flex flex-col gap-4 w-full">
             <h2 className="text-2xl sm:text-xl font-black text-white px-2 flex items-center gap-2">
               Recently Played <i className="ri-history-line text-green-500"></i>
@@ -576,6 +557,27 @@ const Home = () => {
                     songlink={songlink}
                     isPlaying={isPlaying}
                     onPlay={playSuggSong}
+                    addToQueue={addToQueue}
+                    setPlaylistModalSong={setPlaylistModalSong}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {regionalPicks.length > 0 && (
+          <div className="flex flex-col gap-4 w-full">
+            <h2 className="text-2xl sm:text-xl font-black text-white px-2">Pilihan Indonesia & Malaysia</h2>
+            <div className="flex gap-4 sm:gap-3 overflow-x-auto pb-6 pt-2 px-2 scrollbar-hide snap-x">
+              {regionalPicks.map((t, i) => (
+                <div key={`regional-${t.id || i}`} className="snap-start">
+                  <SongCard
+                    item={t}
+                    index={i}
+                    songlink={songlink}
+                    isPlaying={isPlaying}
+                    onPlay={() => playSong(t, i, regionalPicks)}
                     addToQueue={addToQueue}
                     setPlaylistModalSong={setPlaylistModalSong}
                   />
@@ -657,66 +659,6 @@ const Home = () => {
           </div>
         )}
 
-        {/* Footer */}
-        {/* Premium Developer Footer */}
-        <footer className="mt-20 sm:mt-12 px-6 py-12 border-t border-white/5 mx-2 flex flex-col items-center gap-10">
-          <div className="flex flex-col items-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-[10px] font-black tracking-[0.3em] text-zinc-600 uppercase">Crafted by</span>
-              <a 
-                href="https://patelharsh.in" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="group flex flex-col items-center gap-1"
-              >
-                <h2 className="text-2xl sm:text-lg font-black text-white hover:text-green-400 transition-colors tracking-tight uppercase italic">
-                  Harsh Patel
-                </h2>
-                <div className="h-1 w-0 group-hover:w-full bg-green-500 transition-all duration-500 rounded-full"></div>
-              </a>
-            </div>
-
-            {/* Social & Pro Links */}
-            <div className="flex items-center gap-6 px-10 py-4 bg-slate-900/40 rounded-[2rem] border border-white/5 backdrop-blur-xl shadow-2xl">
-              <Tooltip text="Instagram" position="top">
-                <a href="https://instagram.com/patelharsh.in" target="_blank" rel="noopener noreferrer" className="text-xl text-zinc-500 hover:text-pink-500 transition-all hover:scale-110">
-                  <i className="ri-instagram-line"></i>
-                </a>
-              </Tooltip>
-              <Tooltip text="GitHub Profile" position="top">
-                <a href="https://github.com/patelharsh80874" target="_blank" rel="noopener noreferrer" className="text-xl text-zinc-500 hover:text-white transition-all hover:scale-110">
-                  <i className="ri-github-fill"></i>
-                </a>
-              </Tooltip>
-              <Tooltip text="Contact Mail" position="top">
-                <a href="mailto:patelharsh80874@yahoo.com" className="text-xl text-zinc-500 hover:text-amber-400 transition-all hover:scale-110">
-                  <i className="ri-mail-line"></i>
-                </a>
-              </Tooltip>
-              <div className="w-[1px] h-4 bg-white/10"></div>
-              <Tooltip text="Portfolio" position="top">
-                <a href="https://patelharsh.in" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-zinc-400 hover:text-white transition-all uppercase tracking-widest">
-                  Website
-                </a>
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center gap-6 w-full max-w-4xl">
-            <div className="flex flex-wrap justify-center gap-4 text-[9px] font-black text-zinc-600 tracking-widest uppercase">
-              <a href="https://github.com/patelharsh80874/THE-ULTIMATE-SONGS-WEBAPP" target="_blank" rel="noopener noreferrer" className="hover:text-green-500 transition-colors flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-full border border-white/5">
-                <i className="ri-star-line text-green-500"></i> Star on GitHub
-              </a>
-              <div className="bg-slate-900/50 px-4 py-2 rounded-full border border-white/5 flex items-center gap-2">
-                <i className="ri-git-branch-line"></i> v2.0.0
-              </div>
-            </div>
-
-            <p className="text-[10px] text-zinc-700 text-center leading-relaxed font-medium">
-              All trademarks and copyrights belong to their respective owners. All media, images, and songs are the property of their respective owners. This site is for educational and portfolio purposes only.
-            </p>
-          </div>
-        </footer>
       </div>
 
       {/* Add to Playlist Modal */}
@@ -727,8 +669,6 @@ const Home = () => {
         />
       )}
     </div>
-  ) : (
-    <Loading />
   );
 };
 

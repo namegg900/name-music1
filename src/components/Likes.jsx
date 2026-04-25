@@ -20,7 +20,7 @@ const Likes = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/login');
+      navigate('/');
       toast.error('Please login to view your liked songs');
     }
   }, [user, loading, navigate]);

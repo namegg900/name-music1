@@ -66,7 +66,7 @@ const CommunityPlaylists = () => {
         e.stopPropagation();
         if(!currentUser) {
             toast.error("Please login to import playlists");
-            navigate("/login");
+            navigate("/");
             return;
         }
         await importPlaylist(id);

@@ -60,7 +60,7 @@ const ForgotPassword = () => {
       {/* 2. Right Section: Form */}
       <div className="flex-1 flex flex-col relative z-20 h-full">
         <div className="p-4 lg:p-6 flex items-center justify-between">
-          <Link to="/login" className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all group">
+          <Link to="/" className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all group">
             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-purple-500 transition-all font-bold"><i className="ri-arrow-left-line"></i></div>
             <span className="font-bold text-[8px] tracking-[0.2em] uppercase opacity-60">Back to Login</span>
           </Link>
@@ -99,7 +99,7 @@ const ForgotPassword = () => {
 
             <div className="mt-8 pt-5 border-t border-white/5 flex flex-col items-center lg:items-start">
               <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-2 opacity-50">Remember your password?</p>
-              <Link to="/login" className="group inline-flex items-center gap-3 text-white hover:text-purple-400 font-black tracking-[0.1em] transition-all uppercase text-[11px]">
+              <Link to="/" className="group inline-flex items-center gap-3 text-white hover:text-purple-400 font-black tracking-[0.1em] transition-all uppercase text-[11px]">
                 <span className="relative">Sign In Now <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-white/10 group-hover:bg-purple-500/50" /></span>
                 <i className="ri-login-box-line text-lg bg-white/5 w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-purple-500 transition-all shadow-lg"></i>
               </Link>

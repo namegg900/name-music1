@@ -5,8 +5,79 @@ import YouTubeSR from 'youtube-sr';
 const YouTube = YouTubeSR.YouTube || YouTubeSR;
 
 import yts from 'yt-search';
+import { execFile as execFileCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const { getTracks, getData } = spotifyUrlInfo(fetch);
+const execFile = promisify(execFileCallback);
+
+const getSaavnBaseUrl = () =>
+  (process.env.VITE_API_BASE_URL || process.env.VITE_JIOSAAVN_API_URL || 'https://www.jiosaavn.com/api.php').replace(/\/+$/, '');
+
+const fetchSaavnSearchResults = async (query, limit = 10) => {
+  try {
+    const url = `${getSaavnBaseUrl()}/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({}));
+    return Array.isArray(data?.data?.results) ? data.data.results : [];
+  } catch {
+    return [];
+  }
+};
+
+const extractYouTubeWithDanzy = async (url) => {
+  const endpoint = `https://api.danzy.web.id/api/search/yts?q=${encodeURIComponent(url)}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`danzy API failed (${res.status})`);
+
+  const payload = await res.json().catch(() => ({}));
+  const candidates = payload?.result || payload?.results || payload?.data || [];
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    throw new Error('danzy API returned empty result');
+  }
+
+  return {
+    playlistName: 'YouTube Import',
+    tracks: candidates.slice(0, 150).map((item) => {
+      const title = item?.title || item?.name || '';
+      const channel = item?.author?.name || item?.channel?.name || item?.uploader || 'Unknown Artist';
+      const meta = parseYouTubeMetadata(title, channel);
+      return {
+        name: meta.title || title,
+        artist: meta.artists.length > 0 ? meta.artists : [channel],
+        rawTitle: meta.rawTitle,
+        allParts: meta.allParts,
+        image: item?.image || item?.thumbnail || item?.thumb || null,
+      };
+    }),
+  };
+};
+
+const extractYouTubeWithSxtream = async (url) => {
+  const endpoint = `https://api.sxtream.my.id/downloader/ytmp3?url=${encodeURIComponent(url)}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`sxtream API failed (${res.status})`);
+
+  const payload = await res.json().catch(() => ({}));
+  const data = payload?.result || payload?.data || payload;
+  const title = data?.title || data?.name;
+  if (!title) throw new Error('sxtream API returned empty title');
+
+  const channel = data?.author || data?.uploader || 'Unknown Artist';
+  const meta = parseYouTubeMetadata(title, channel);
+  return {
+    playlistName: 'YouTube Import',
+    tracks: [{
+      name: meta.title || title,
+      artist: meta.artists.length > 0 ? meta.artists : [channel],
+      rawTitle: meta.rawTitle,
+      allParts: meta.allParts,
+      image: data?.thumbnail || null,
+      directAudioUrl: data?.url || data?.download || null,
+    }],
+  };
+};
 
 const getSaavnBaseUrl = () =>
   (process.env.VITE_API_BASE_URL || process.env.VITE_JIOSAAVN_API_URL || 'https://www.jiosaavn.com/api.php').replace(/\/+$/, '');

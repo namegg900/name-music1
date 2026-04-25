@@ -24,7 +24,7 @@ const AddToPlaylistModal = ({ songs, song, onClose }) => {
   }, [user, fetchPlaylists]);
 
   if (!user) {
-    toast.error("Please login to add songs to playlists");
+    toast.error("Mode gratis aktif: lagu ditambahkan ke playlist lokal");
     onClose();
     return null;
   }

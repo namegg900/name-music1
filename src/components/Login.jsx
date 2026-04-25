@@ -145,9 +145,9 @@ const Login = () => {
               <img src={logo} alt="Logo" className="w-28 h-28 rounded-3xl shadow-2xl border border-white/10 relative z-10 transform -rotate-6 group-hover:rotate-0 transition-transform duration-700" />
             </div>
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-tight mb-3">
-              The Ultimate <br /> <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Songs</span>
+              name-music
             </h1>
-            <p className="text-zinc-400 text-[10px] font-bold tracking-[0.2em] uppercase opacity-70">Your premium music universe</p>
+            <p className="text-zinc-400 text-[10px] font-bold tracking-[0.2em] uppercase opacity-70">Your free music universe</p>
           </motion.div>
         </div>
       </div>

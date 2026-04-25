@@ -465,7 +465,7 @@ const MyPlaylistDetails = () => {
               <button
                 onClick={() => {
                   if (!user) {
-                    toast.error("Please login to import playlists");
+                    toast.error("Mode gratis aktif. Import online tidak diperlukan");
                     navigate("/");
                     return;
                   }

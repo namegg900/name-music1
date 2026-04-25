@@ -65,7 +65,7 @@ const CommunityPlaylists = () => {
     const handleImport = async (e, id) => {
         e.stopPropagation();
         if(!currentUser) {
-            toast.error("Please login to import playlists");
+            toast.error("Mode gratis aktif. Import online tidak diperlukan");
             navigate("/");
             return;
         }

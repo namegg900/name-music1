@@ -34,7 +34,7 @@ const MyPlaylists = () => {
   useEffect(() => {
     if (!loading && !user) {
       navigate("/");
-      toast.error("Please login to access your playlists");
+      toast.error("Mode gratis aktif: playlist tersimpan lokal");
     } else if (user) {
       fetchPlaylists();
     }

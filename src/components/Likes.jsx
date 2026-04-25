@@ -21,7 +21,7 @@ const Likes = () => {
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
-      toast.error('Please login to view your liked songs');
+      toast.error('Mode gratis aktif: favorit tersimpan lokal');
     }
   }, [user, loading, navigate]);
 

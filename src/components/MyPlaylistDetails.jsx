@@ -14,6 +14,7 @@ import AddToPlaylistModal from "./AddToPlaylistModal";
 import EditPlaylistModal from "./EditPlaylistModal";
 import Tooltip from "./Tooltip";
 import API_BASE_URL from "../config/api";
+import { API_BASE_URL as CATALOG_API_BASE_URL } from "../constants";
 
 const API = `${API_BASE_URL}/api/playlists`;
 
@@ -67,7 +68,7 @@ const MyPlaylistDetails = () => {
       if (data.songs && data.songs.length > 0) {
         const idsString = data.songs.join(",");
         const saavnRes = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/songs?ids=${idsString}`
+          `${CATALOG_API_BASE_URL}/songs?ids=${idsString}`
         );
         if (append) {
           setHydratedSongs((prev) => [...prev, ...saavnRes.data.data]);
@@ -208,7 +209,7 @@ const MyPlaylistDetails = () => {
       for (let i = 0; i < total; i += CHUNK_SIZE) {
         const chunk = allIds.slice(i, i + CHUNK_SIZE);
         const idsString = chunk.join(",");
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/songs?ids=${idsString}`);
+        const res = await axios.get(`${CATALOG_API_BASE_URL}/songs?ids=${idsString}`);
         results = [...results, ...res.data.data];
         setAllHydratedSongs([...results]);
         setHydrationProgress(Math.round(((i + chunk.length) / total) * 100));

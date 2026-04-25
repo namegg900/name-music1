@@ -8,6 +8,74 @@ import yts from 'yt-search';
 
 const { getTracks, getData } = spotifyUrlInfo(fetch);
 
+const getSaavnBaseUrl = () =>
+  (process.env.VITE_API_BASE_URL || process.env.VITE_JIOSAAVN_API_URL || 'https://www.jiosaavn.com/api.php').replace(/\/+$/, '');
+
+const fetchSaavnSearchResults = async (query, limit = 10) => {
+  try {
+    const url = `${getSaavnBaseUrl()}/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({}));
+    return Array.isArray(data?.data?.results) ? data.data.results : [];
+  } catch {
+    return [];
+  }
+};
+
+const extractYouTubeWithDanzy = async (url) => {
+  const endpoint = `https://api.danzy.web.id/api/search/yts?q=${encodeURIComponent(url)}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`danzy API failed (${res.status})`);
+
+  const payload = await res.json().catch(() => ({}));
+  const candidates = payload?.result || payload?.results || payload?.data || [];
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    throw new Error('danzy API returned empty result');
+  }
+
+  return {
+    playlistName: 'YouTube Import',
+    tracks: candidates.slice(0, 150).map((item) => {
+      const title = item?.title || item?.name || '';
+      const channel = item?.author?.name || item?.channel?.name || item?.uploader || 'Unknown Artist';
+      const meta = parseYouTubeMetadata(title, channel);
+      return {
+        name: meta.title || title,
+        artist: meta.artists.length > 0 ? meta.artists : [channel],
+        rawTitle: meta.rawTitle,
+        allParts: meta.allParts,
+        image: item?.image || item?.thumbnail || item?.thumb || null,
+      };
+    }),
+  };
+};
+
+const extractYouTubeWithSxtream = async (url) => {
+  const endpoint = `https://api.sxtream.my.id/downloader/ytmp3?url=${encodeURIComponent(url)}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`sxtream API failed (${res.status})`);
+
+  const payload = await res.json().catch(() => ({}));
+  const data = payload?.result || payload?.data || payload;
+  const title = data?.title || data?.name;
+  if (!title) throw new Error('sxtream API returned empty title');
+
+  const channel = data?.author || data?.uploader || 'Unknown Artist';
+  const meta = parseYouTubeMetadata(title, channel);
+  return {
+    playlistName: 'YouTube Import',
+    tracks: [{
+      name: meta.title || title,
+      artist: meta.artists.length > 0 ? meta.artists : [channel],
+      rawTitle: meta.rawTitle,
+      allParts: meta.allParts,
+      image: data?.thumbnail || null,
+      directAudioUrl: data?.url || data?.download || null,
+    }],
+  };
+};
+
 /**
  * Utility to clean song titles for better matching
  */
@@ -96,9 +164,7 @@ const findJioSaavnMatchForMix = async (title, artistsArray = [], rawTitle = "", 
     let results = [];
     for (const query of searchTiers) {
         try {
-            const res = await fetch(`${process.env.VITE_API_BASE_URL}/search/songs?query=${encodeURIComponent(query)}&limit=10`);
-            const data = await res.json();
-            const batch = data?.data?.results || [];
+            const batch = await fetchSaavnSearchResults(query, 10);
             results = [...results, ...batch];
             if (results.length >= 10) break;
         } catch (err) {}
@@ -167,25 +233,16 @@ const findJioSaavnMatch = async (title, artistRaw) => {
     let results = [];
     
     // Tier 1: Title + Full Artist String
-    const tier1Query = encodeURIComponent(`${cleanedSpotifyTitle} ${artistRaw}`);
-    const res1 = await fetch(`${process.env.VITE_API_BASE_URL}/search/songs?query=${tier1Query}&limit=10`);
-    const data1 = await res1.json();
-    results = data1?.data?.results || [];
+    results = await fetchSaavnSearchResults(`${cleanedSpotifyTitle} ${artistRaw}`, 10);
 
     // Tier 2: Title + Primary Artist
     if (results.length === 0) {
-      const tier2Query = encodeURIComponent(`${cleanedSpotifyTitle} ${primarySpotifyArtist}`);
-      const res2 = await fetch(`${process.env.VITE_API_BASE_URL}/search/songs?query=${tier2Query}&limit=10`);
-      const data2 = await res2.json();
-      results = data2?.data?.results || [];
+      results = await fetchSaavnSearchResults(`${cleanedSpotifyTitle} ${primarySpotifyArtist}`, 10);
     }
 
     // Tier 3: Title Only
     if (results.length === 0) {
-      const tier3Query = encodeURIComponent(cleanedSpotifyTitle);
-      const res3 = await fetch(`${process.env.VITE_API_BASE_URL}/search/songs?query=${tier3Query}&limit=10`);
-      const data3 = await res3.json();
-      results = data3?.data?.results || [];
+      results = await fetchSaavnSearchResults(cleanedSpotifyTitle, 10);
     }
 
     if (results.length === 0) return null;
@@ -239,6 +296,7 @@ const chunkArray = (array, size) => {
     return chunks;
 };
 
+
 /**
  * Playlist Bridge Service (Universal)
  */
@@ -270,11 +328,37 @@ export const analyzePlaylist = async (url) => {
         console.log(`[BRIDGE SERVICE] Analyzing YouTube: ${url}`);
         const urlObj = new URL(url.replace('music.youtube.com', 'www.youtube.com'));
         const listId = urlObj.searchParams.get('list');
-        if (!listId) throw new Error('Could not find a valid playlist ID in the URL. Make sure it contains ?list=...');
 
-        let youtubeSrFailed = false;
+        let fallbackToLegacy = false;
 
-        if (listId.startsWith('PL')) {
+        // Fast path requested: Danzy YT search API
+        try {
+            const danzyData = await extractYouTubeWithDanzy(url);
+            playlistName = danzyData.playlistName;
+            tracksToProcess = danzyData.tracks;
+            extractionMethod = 'danzy-yts';
+            console.log(`[BRIDGE SERVICE] danzy extracted ${tracksToProcess.length} tracks${listId ? ` for ${listId}` : ''}`);
+        } catch (err) {
+            fallbackToLegacy = true;
+            console.log(`[BRIDGE SERVICE] danzy API unavailable/failed, switching to legacy extractor. Error: ${err.message}`);
+        }
+
+
+        if (fallbackToLegacy && !listId) {
+            try {
+                const sxtreamData = await extractYouTubeWithSxtream(url);
+                playlistName = sxtreamData.playlistName;
+                tracksToProcess = sxtreamData.tracks;
+                extractionMethod = 'sxtream-ytmp3';
+                fallbackToLegacy = false;
+                console.log('[BRIDGE SERVICE] using sxtream ytmp3 fallback for direct YouTube URL');
+            } catch (err) {
+                fallbackToLegacy = true;
+                console.log(`[BRIDGE SERVICE] sxtream fallback failed: ${err.message}`);
+            }
+        }
+
+        if (fallbackToLegacy && listId && listId.startsWith('PL')) {
             try {
                 extractionMethod = 'youtube-sr';
                 const ytPlaylist = await YouTube.getPlaylist(url, { fetchAll: true });
@@ -287,21 +371,22 @@ export const analyzePlaylist = async (url) => {
                     artist: v.channel?.name || 'Unknown Artist',
                     image: v.thumbnail?.url
                 }));
+                fallbackToLegacy = false;
             } catch (err) {
                 console.log(`[BRIDGE SERVICE] youtube-sr failed for ${listId}, falling back to yt-search. Error: ${err.message}`);
-                youtubeSrFailed = true;
+                fallbackToLegacy = true;
             }
         }
 
-        // Use yt-search as a primary for Mixes or as a fallback for Playlists
-        if (!listId.startsWith('PL') || youtubeSrFailed) {
+        // yt-search fallback for mixes or when danzy/youtube-sr fail
+        if (fallbackToLegacy) {
             extractionMethod = 'yt-search';
-            const ytData = await yts({ listId });
-            
+            const ytData = listId ? await yts({ listId }) : await yts(url);
+
             if (!ytData || !ytData.videos || ytData.videos.length === 0) {
                 throw new Error('Could not extract playlist data from YouTube. It might be private or invalid.');
             }
-            
+
             playlistName = ytData.title || 'YouTube Import';
             tracksToProcess = ytData.videos.map(v => {
                 const meta = parseYouTubeMetadata(v.title, v.author?.name || '');
@@ -326,7 +411,7 @@ export const analyzePlaylist = async (url) => {
         const batchResults = await Promise.all(chunk.map(async (track) => {
             try {
                 let match = null;
-                if (extractionMethod === 'yt-search') {
+                if (extractionMethod === 'yt-search' || extractionMethod === 'danzy-yts' || extractionMethod === 'sxtream-ytmp3') {
                     match = await findJioSaavnMatchForMix(track.name, track.artist, track.rawTitle, track.allParts);
                 } else {
                     match = await findJioSaavnMatch(track.name, track.artist);

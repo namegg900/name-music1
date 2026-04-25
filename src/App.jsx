@@ -21,16 +21,12 @@ import Songs from "./components/Songs";
 import Likes from "./components/Likes";
 import SongDetails from "./components/SongDetails";
 import Import from "./components/Import";
-import Login from "./components/Login";
-import Register from "./components/Register";
 import SharedPlaylist from "./components/SharedPlaylist";
 import AdminDashboard from "./components/AdminDashboard";
 import MyPlaylists from "./components/MyPlaylists";
 import MyPlaylistDetails from "./components/MyPlaylistDetails";
 import CommunityPlaylists from "./components/CommunityPlaylists";
 import CreatorProfile from "./components/CreatorProfile";
-import ForgotPassword from "./components/ForgotPassword";
-import ResetPassword from "./components/ResetPassword";
 
 import { SocketProvider } from "./context/SocketContext";
 
@@ -61,16 +57,12 @@ const App = () => {
                   <Route path="/label/:token" element={<LabelDetails />} />
                   <Route path="/likes" element={<Likes />} />
                   <Route path="/import" element={<Import />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
                   <Route path="/shared/:id" element={<SharedPlaylist />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/my-playlists" element={<MyPlaylists />} />
                   <Route path="/community" element={<CommunityPlaylists />} />
                   <Route path="/profile/:username" element={<CreatorProfile />} />
                   <Route path="/:username/:id" element={<MyPlaylistDetails />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password/:token" element={<ResetPassword />} />
                 </Routes>
                 <PlayerBar />
               </div>

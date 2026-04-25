@@ -193,7 +193,7 @@ const PremiumDropdown = ({ options, value, onChange }) => {
 const Home = () => {
   const navigate = useNavigate();
   const [home, setHome] = useState(null);
-  const [language, setLanguage] = useState("indonesian");
+  const [language, setLanguage] = useState("english");
   const [details, setDetails] = useState([]);
   const [suggSong, setSuggSong] = useState([]);
   let [page, setPage] = useState(1);
@@ -212,29 +212,35 @@ const Home = () => {
 
   const [playlistModalSong, setPlaylistModalSong] = useState(null);
 
-  const getHome = async () => {
-    resetState();
+  const HOME_API_LANGUAGES = new Set(["english", "hindi", "punjabi", "gujarati", "rajasthani"]);
+  const normalizeHomeLanguage = (lang) => (HOME_API_LANGUAGES.has(lang) ? lang : "english");
+  const normalizeRadioLanguage = (lang) => (HOME_API_LANGUAGES.has(lang) ? lang : "hindi");
+
+  const getHome = async (lang = language) => {
     try {
-      const { data } = await getHomeModules(language);
-      setHome(data.data);
+      const apiLang = normalizeHomeLanguage(lang);
+      const response = await getHomeModules(apiLang);
+      setHome(response?.data?.data || {});
     } catch (error) {
-      console.log("error", error);
+      console.log("error loading home modules", error);
+      setHome({});
     }
   };
 
-  const getDetails = async () => {
+  const getDetails = async (lang = language) => {
     try {
-      const { data } = await searchSongs(
-        language,
-        language === "english" ? page : page2,
-        20
-      );
-      const newData = data.data.results.filter(
+      const queryLang = lang === "indonesian" ? "lagu indonesia populer" : lang === "malay" ? "lagu malaysia populer" : lang;
+      const pageNo = queryLang === "english" ? page : page2;
+      const response = await searchSongs(queryLang, pageNo, 40);
+      const results = response?.data?.data?.results || [];
+      const newData = results.filter(
         (newItem) => !details.some((prevItem) => prevItem.id === newItem.id)
       );
       setDetails((prev) => [...prev, ...newData]);
+      setPage(18);
     } catch (error) {
-      console.log("error", error);
+      console.log("error loading songs", error);
+      setDetails([]);
     }
   };
 
@@ -289,42 +295,13 @@ const Home = () => {
     setSuggSong([]);
   }
 
-  function seccall() {
-    const intervalId = setInterval(() => {
-      if (home === null) {
-        getHome();
-      }
-    }, 1000);
-    return intervalId;
-  }
-
-  function seccall2() {
-    const intervalId2 = setInterval(
-      () => {
-        if (details.length >= 0 && page < 5) {
-          setPage2(Math.floor(Math.random() * 50));
-          setPage(page + 1);
-          getDetails();
-        }
-      },
-      page <= 2 ? 500 : 2000
-    );
-    return intervalId2;
-  }
-
   useEffect(() => {
-    const interval = seccall();
-    return () => clearInterval(interval);
-  }, [language, home]);
-
-  useEffect(() => {
-    getHome();
+    resetState();
+    setPage2(Math.floor(Math.random() * 50));
+    getHome(language);
+    getDetails(language);
   }, [language]);
 
-  useEffect(() => {
-    const interval2 = seccall2();
-    return () => clearInterval(interval2);
-  }, [details, page, language]);
 
   useEffect(() => {
     processLikedSongIds();
@@ -333,15 +310,15 @@ const Home = () => {
   useEffect(() => {
     async function loadRadios() {
       try {
-        const radios = await fetchFeaturedRadios(language);
+        const radios = await fetchFeaturedRadios(normalizeRadioLanguage(language));
         setRadioStations(radios);
         const artistRadios = await fetchArtistsRadios();
         setArtistRadioStations(artistRadios);
-        const uniqueArtists = await fetchUniqueArtists(language);
+        const uniqueArtists = await fetchUniqueArtists(normalizeRadioLanguage(language));
         setTrendingArtistRadioStations(uniqueArtists);
-        const starringArtists = await fetchStarringArtists(language);
+        const starringArtists = await fetchStarringArtists(normalizeRadioLanguage(language));
         setStarringArtistRadioStations(starringArtists);
-        const labelsData = await getTrendingLabels(language);
+        const labelsData = await getTrendingLabels(normalizeRadioLanguage(language));
         setLabels(labelsData);
       } catch (err) {
         console.error("Error loading radios", err);
@@ -355,7 +332,7 @@ const Home = () => {
         style: { borderRadius: '10px', background: '#333', color: '#fff' }
     });
     try {
-      const { fullSongs, stationId } = await fetchRadioSongs(language, radioId);
+      const { fullSongs, stationId } = await fetchRadioSongs(normalizeRadioLanguage(language), radioId);
       if (fullSongs?.data?.length > 0) {
         setStationId(stationId);
         setHasRadioQueue(true);
@@ -378,8 +355,8 @@ const Home = () => {
           searchSongs("lagu malaysia populer", 1, 10),
         ]);
         const picks = [
-          ...(indoRes?.data?.data?.results || []).slice(0, 1),
-          ...(malayRes?.data?.data?.results || []).slice(0, 1),
+          ...(indoRes?.data?.data?.results || []).slice(0, 3),
+          ...(malayRes?.data?.data?.results || []).slice(0, 3),
         ];
         setRegionalPicks(picks.filter(Boolean));
       } catch (error) {

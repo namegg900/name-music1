@@ -5,8 +5,11 @@ import YouTubeSR from 'youtube-sr';
 const YouTube = YouTubeSR.YouTube || YouTubeSR;
 
 import yts from 'yt-search';
+import { execFile as execFileCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const { getTracks, getData } = spotifyUrlInfo(fetch);
+const execFile = promisify(execFileCallback);
 
 /**
  * Utility to clean song titles for better matching
@@ -239,6 +242,47 @@ const chunkArray = (array, size) => {
     return chunks;
 };
 
+
+const extractYouTubePlaylistWithYtDlp = async (url) => {
+    const normalizedUrl = url.replace('music.youtube.com', 'www.youtube.com');
+    const args = [
+        '--no-warnings',
+        '--skip-download',
+        '--dump-single-json',
+        '--flat-playlist',
+        '--playlist-end', '250',
+        normalizedUrl
+    ];
+
+    const { stdout } = await execFile('yt-dlp', args, {
+        timeout: 45000,
+        maxBuffer: 15 * 1024 * 1024,
+        windowsHide: true
+    });
+
+    const data = JSON.parse(stdout);
+    const entries = Array.isArray(data?.entries) ? data.entries : [];
+    if (entries.length === 0) {
+        throw new Error('yt-dlp returned empty playlist data');
+    }
+
+    return {
+        playlistName: data?.title || 'YouTube Import',
+        tracks: entries.map((entry) => {
+            const rawTitle = entry?.title || '';
+            const channelName = entry?.channel || entry?.uploader || 'Unknown Artist';
+            const meta = parseYouTubeMetadata(rawTitle, channelName);
+            return {
+                name: meta.title || rawTitle,
+                artist: meta.artists.length > 0 ? meta.artists : [channelName],
+                rawTitle: meta.rawTitle,
+                allParts: meta.allParts,
+                image: entry?.thumbnail || null,
+            };
+        }),
+    };
+};
+
 /**
  * Playlist Bridge Service (Universal)
  */
@@ -272,9 +316,21 @@ export const analyzePlaylist = async (url) => {
         const listId = urlObj.searchParams.get('list');
         if (!listId) throw new Error('Could not find a valid playlist ID in the URL. Make sure it contains ?list=...');
 
-        let youtubeSrFailed = false;
+        let fallbackToLegacy = false;
 
-        if (listId.startsWith('PL')) {
+        // Fast path: yt-dlp is much faster and more reliable for large YouTube playlists.
+        try {
+            const ytDlpData = await extractYouTubePlaylistWithYtDlp(url);
+            playlistName = ytDlpData.playlistName;
+            tracksToProcess = ytDlpData.tracks;
+            extractionMethod = 'yt-dlp';
+            console.log(`[BRIDGE SERVICE] yt-dlp extracted ${tracksToProcess.length} tracks for ${listId}`);
+        } catch (err) {
+            fallbackToLegacy = true;
+            console.log(`[BRIDGE SERVICE] yt-dlp unavailable/failed, switching to legacy extractor. Error: ${err.message}`);
+        }
+
+        if (fallbackToLegacy && listId.startsWith('PL')) {
             try {
                 extractionMethod = 'youtube-sr';
                 const ytPlaylist = await YouTube.getPlaylist(url, { fetchAll: true });
@@ -287,21 +343,22 @@ export const analyzePlaylist = async (url) => {
                     artist: v.channel?.name || 'Unknown Artist',
                     image: v.thumbnail?.url
                 }));
+                fallbackToLegacy = false;
             } catch (err) {
                 console.log(`[BRIDGE SERVICE] youtube-sr failed for ${listId}, falling back to yt-search. Error: ${err.message}`);
-                youtubeSrFailed = true;
+                fallbackToLegacy = true;
             }
         }
 
-        // Use yt-search as a primary for Mixes or as a fallback for Playlists
-        if (!listId.startsWith('PL') || youtubeSrFailed) {
+        // yt-search fallback for mixes or when yt-dlp/youtube-sr fail
+        if (fallbackToLegacy) {
             extractionMethod = 'yt-search';
             const ytData = await yts({ listId });
-            
+
             if (!ytData || !ytData.videos || ytData.videos.length === 0) {
                 throw new Error('Could not extract playlist data from YouTube. It might be private or invalid.');
             }
-            
+
             playlistName = ytData.title || 'YouTube Import';
             tracksToProcess = ytData.videos.map(v => {
                 const meta = parseYouTubeMetadata(v.title, v.author?.name || '');
@@ -326,7 +383,7 @@ export const analyzePlaylist = async (url) => {
         const batchResults = await Promise.all(chunk.map(async (track) => {
             try {
                 let match = null;
-                if (extractionMethod === 'yt-search') {
+                if (extractionMethod === 'yt-search' || extractionMethod === 'yt-dlp') {
                     match = await findJioSaavnMatchForMix(track.name, track.artist, track.rawTitle, track.allParts);
                 } else {
                     match = await findJioSaavnMatch(track.name, track.artist);

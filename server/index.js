@@ -24,6 +24,7 @@ import playlistRoutes from './routes/playlistRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import radioRoutes from './routes/radioRoutes.js';
+import catalogRoutes from './routes/catalogRoutes.js';
 
 // Global Environment Check for Production
 if (process.env.NODE_ENV === 'production') {
@@ -76,6 +77,7 @@ app.use('/api/playlists', playlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/radio', radioRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 // Documentation Dashboard (Markdown to HTML)
 app.get('/', renderApiDocs);

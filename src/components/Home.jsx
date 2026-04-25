@@ -127,7 +127,7 @@ const PremiumDropdown = ({ options, value, onChange }) => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [hasCatalogApi]);
+  }, []);
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
@@ -381,7 +381,7 @@ const Home = () => {
     }
 
     loadRegionalPicks();
-  }, [hasCatalogApi]);
+  }, []);
 
   async function FinalfetchArtitsRadioSongs(language, radioId) {
     const loadingToast = toast.loading("Tuning into artist station...", {

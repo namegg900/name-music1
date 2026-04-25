@@ -5,8 +5,11 @@ import YouTubeSR from 'youtube-sr';
 const YouTube = YouTubeSR.YouTube || YouTubeSR;
 
 import yts from 'yt-search';
+import { execFile as execFileCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const { getTracks, getData } = spotifyUrlInfo(fetch);
+const execFile = promisify(execFileCallback);
 
 const getSaavnBaseUrl = () =>
   (process.env.VITE_API_BASE_URL || process.env.VITE_JIOSAAVN_API_URL || 'https://www.jiosaavn.com/api.php').replace(/\/+$/, '');
